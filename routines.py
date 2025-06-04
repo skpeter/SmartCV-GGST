@@ -80,7 +80,7 @@ def detect_characters(payload):
     character2 = core.read_text(img, region2)
 
     if character1 is not None and character2 is not None:
-        c1, c2 = findBestMatch(character1, ggst.characters), findBestMatch(character2, ggst.characters)
+        c1, _, c2, _ = findBestMatch(character1, ggst.characters), findBestMatch(character2, ggst.characters)
     else: return detect_characters(payload)
     payload['players'][0]['character'], payload['players'][1]['character'] = c1, c2
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 1 character:", c1)
