@@ -8,8 +8,8 @@ import time
 import easyocr
 import ggst
 import re
-import smartcv_core.core as core
-from smartcv_core.matching import findBestMatch
+import core.core as core
+from core.matching import findBestMatch
 from datetime import datetime
 client_name = "smartcv-ggst"
 config = configparser.ConfigParser()
