@@ -182,7 +182,7 @@ def determine_winner(payload:dict, img, scale_x, scale_y, perfect=False):
         img = img.crop((int(115 * scale_y), int(75 * scale_x), int(705 * scale_y), int(320 * scale_x)))
         img = img.rotate(-10, expand=True)
 
-    result = core.read_text(img, colored=False, contrast=4, canny=True)
+    result = core.read_text(img, colored=False, contrast=4)
 
     # strip all non-numeric characters from the result
     if result:
