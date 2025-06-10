@@ -1,11 +1,5 @@
 import configparser
-from PIL import Image, ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES=True
-import cv2
-import numpy as np
-import threading
 import time
-import easyocr
 import ggst
 import re
 import core.core as core
