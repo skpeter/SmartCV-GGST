@@ -26,10 +26,7 @@ payload = {
     ]
 }
 
-def detect_character_select_screen(payload:dict):
-    
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_character_select_screen(payload:dict, img, scale_x:float, scale_y:float):
     pixel = img.getpixel((int(115 * scale_x), int(55 * scale_y))) #white tournament mode icon
     pixel2 = img.getpixel((int(1805 * scale_x), int(55 * scale_y))) #back button area
     
@@ -60,9 +57,7 @@ def detect_character_select_screen(payload:dict):
                 player['name'] = None
     return
 
-def detect_characters(payload:dict):
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_characters(payload:dict, img, scale_x:float, scale_y:float):
     time.sleep(core.refresh_rate)
 
     # signal to the main loop that character and tag detection is in progress
@@ -76,7 +71,7 @@ def detect_characters(payload:dict):
     if character1 is not None and character2 is not None:
         c1, _ = findBestMatch(character1, ggst.characters)
         c2, _ = findBestMatch(character2, ggst.characters)
-    else: return detect_characters(payload)
+    else: return detect_characters(payload, img, scale_x, scale_y)
     payload['players'][0]['character'], payload['players'][1]['character'] = c1, c2
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 1 character:", c1)
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 2 character:", c2)
@@ -84,9 +79,7 @@ def detect_characters(payload:dict):
     time.sleep(core.refresh_rate)
     return
 
-def detect_versus_screen(payload:dict):
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
     pixel1 = img.getpixel((int(1050 * scale_x), int(185 * scale_y))) #black letterbox
     pixel2 = img.getpixel((int(1050 * scale_x), int(195 * scale_y))) #blue sky
     
@@ -101,14 +94,12 @@ def detect_versus_screen(payload:dict):
         if payload['state'] != previous_states[-1]:
             previous_states.append(payload['state'])
             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Match is now loading...")
-            detect_characters(payload)
+            detect_characters(payload, img, scale_x, scale_y)
     return
 
-def detect_player_tags(payload:dict):
+def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
     time.sleep(core.refresh_rate)
     if payload['players'][0]['name'] != None and payload['players'][1]['name'] != None: return
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
 
     tag1 = core.read_text(img, (int(575 * scale_x), int(35 * scale_y), int(770 * scale_x), int(115 * scale_y)))
     tag2 = core.read_text(img, (int(575 * scale_x), int(880 * scale_y), int(770 * scale_x), int(115 * scale_y)))
@@ -123,9 +114,7 @@ def detect_player_tags(payload:dict):
             player['name'] = False
     return
 
-def detect_round_start(payload:dict):
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_round_start(payload:dict, img, scale_x:float, scale_y:float):
     box = (int(960 * scale_x), int(475 * scale_y), int(10 * scale_x), int(180 * scale_y))
 
     if core.get_color_match_in_region(img, box, (200, 15, 15), 0.15) >= 0.9:
@@ -137,11 +126,9 @@ def detect_round_start(payload:dict):
             previous_states.append(payload['state'])
                 
 
-def detect_rounds(payload:dict):
+def detect_rounds(payload:dict, img, scale_x:float, scale_y:float):
     if payload['players'][0]['rounds'] < 2 and payload['players'][1]['rounds'] < 2: return
         
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
     pixel1 = img.getpixel((int(800 * scale_x), int(90 * scale_y))) #p1 heart
     pixel2 = img.getpixel((int(1120 * scale_x), int(90 * scale_y))) #p2 heart
 
@@ -168,7 +155,7 @@ def detect_rounds(payload:dict):
         payload['players'][1]['rounds'] = 1
     return
 
-def determine_winner(payload:dict, img, scale_x, scale_y, perfect=False):
+def determine_winner(payload:dict, img, scale_x:float, scale_y:float, perfect=False):
     # Define the area to read
     img = img.rotate(90 if not perfect else 344, expand=True)
     if perfect: x, y, w, h = (int(115 * scale_x), int(90 * scale_y), int(355 * scale_x), int(160 * scale_y))
@@ -188,14 +175,12 @@ def determine_winner(payload:dict, img, scale_x, scale_y, perfect=False):
     return False
 
 
-def detect_game_end(payload:dict):
+def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
     """
     Possibly will be deprecated soon. Only use to switch scenes.
     """
     # if payload['players'][0]['rounds'] > 1 and payload['players'][1]['rounds'] > 1: return
 
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
     pixel1 = img.getpixel((int(666 * scale_x), int(740 * scale_y))) #"SLASH" white text
     pixel2 = img.getpixel((int(1140 * scale_x), int(655 * scale_y))) #"SLASH" white text (somewhere else)
     pixelperfect1 = img.getpixel((int(640 * scale_x), int(765 * scale_y))) #red overlay around text
@@ -220,11 +205,9 @@ def detect_game_end(payload:dict):
         time.sleep(core.refresh_rate)
     return
 
-def detect_result_screen(payload:dict):
+def detect_result_screen(payload:dict, img, scale_x:float, scale_y:float):
     if payload['players'][0]['rounds'] < 1 or payload['players'][1]['rounds'] < 1: return
     if payload['players'][0]['rounds'] > 2 and payload['players'][1]['rounds'] > 2: return
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
     pixel = img.getpixel((int(1 * scale_x), int(105 * scale_y))) #the win/lose text for player 1
     pixel2 = img.getpixel((int(1 * scale_x), int(975 * scale_y))) #the win/lose text for player 1
     # Define the target color and deviation
