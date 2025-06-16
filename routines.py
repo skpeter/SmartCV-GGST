@@ -65,8 +65,8 @@ def detect_characters(payload:dict, img, scale_x:float, scale_y:float):
     # Initialize the reader
     region1 = (int(215 * scale_x), int(410 * scale_y), int(565 * scale_x), int(100 * scale_y))
     region2 = (int(215 * scale_x), int(600 * scale_y), int(565 * scale_x), int(100 * scale_y))
-    character1 = core.read_text(img, region1)
-    character2 = core.read_text(img, region2)
+    character1 = core.read_text(img, region1).join(' ')
+    character2 = core.read_text(img, region2).join(' ')
 
     if character1 is not None and character2 is not None:
         c1, _ = findBestMatch(character1, ggst.characters)
@@ -101,8 +101,8 @@ def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
     time.sleep(core.refresh_rate)
     if payload['players'][0]['name'] != None and payload['players'][1]['name'] != None: return
 
-    tag1 = core.read_text(img, (int(575 * scale_x), int(35 * scale_y), int(770 * scale_x), int(115 * scale_y)))
-    tag2 = core.read_text(img, (int(575 * scale_x), int(880 * scale_y), int(770 * scale_x), int(115 * scale_y)))
+    tag1 = core.read_text(img, (int(575 * scale_x), int(35 * scale_y), int(770 * scale_x), int(115 * scale_y))).join(' ')
+    tag2 = core.read_text(img, (int(575 * scale_x), int(880 * scale_y), int(770 * scale_x), int(115 * scale_y))).join(' ')
     
 
     if tag1 is not None and tag2 is not None:
@@ -163,7 +163,7 @@ def determine_winner(payload:dict, img, scale_x:float, scale_y:float, perfect=Fa
         img = img.crop((int(115 * scale_y), int(75 * scale_x), int(705 * scale_y), int(320 * scale_x)))
         img = img.rotate(-10, expand=True)
 
-    result = core.read_text(img, colored=False, contrast=4)
+    result = core.read_text(img, colored=False, contrast=4).join(' ')
 
     # strip all non-numeric characters from the result
     if result:
