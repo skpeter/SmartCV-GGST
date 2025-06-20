@@ -65,8 +65,10 @@ def detect_characters(payload:dict, img, scale_x:float, scale_y:float):
     # Initialize the reader
     region1 = (int(215 * scale_x), int(410 * scale_y), int(565 * scale_x), int(100 * scale_y))
     region2 = (int(215 * scale_x), int(600 * scale_y), int(565 * scale_x), int(100 * scale_y))
-    character1 = core.read_text(img, region1).join(' ')
-    character2 = core.read_text(img, region2).join(' ')
+    character1 = core.read_text(img, region1)
+    character2 = core.read_text(img, region2)
+    if character1: character1 = ' '.join(character1)
+    if character2: character2 = ' '.join(character2)
 
     if character1 is not None and character2 is not None:
         c1, _ = findBestMatch(character1, ggst.characters)
@@ -101,9 +103,10 @@ def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
     time.sleep(core.refresh_rate)
     if payload['players'][0]['name'] != None and payload['players'][1]['name'] != None: return
 
-    tag1 = core.read_text(img, (int(575 * scale_x), int(35 * scale_y), int(770 * scale_x), int(115 * scale_y))).join(' ')
-    tag2 = core.read_text(img, (int(575 * scale_x), int(880 * scale_y), int(770 * scale_x), int(115 * scale_y))).join(' ')
-    
+    tag1 = core.read_text(img, (int(575 * scale_x), int(35 * scale_y), int(770 * scale_x), int(115 * scale_y)))
+    tag2 = core.read_text(img, (int(575 * scale_x), int(880 * scale_y), int(770 * scale_x), int(115 * scale_y)))
+    if tag1: tag1 = ' '.join(tag1)
+    if tag2: tag2 = ' '.join(tag2)
 
     if tag1 is not None and tag2 is not None:
         payload['players'][0]['name'], payload['players'][1]['name'] = tag1.strip(), tag2.strip()
@@ -163,7 +166,8 @@ def determine_winner(payload:dict, img, scale_x:float, scale_y:float, perfect=Fa
         img = img.crop((int(115 * scale_y), int(75 * scale_x), int(705 * scale_y), int(320 * scale_x)))
         img = img.rotate(-10, expand=True)
 
-    result = core.read_text(img, colored=False, contrast=4).join(' ')
+    result = core.read_text(img, colored=False, contrast=4)
+    if result: result = ' '.join(result)
 
     # strip all non-numeric characters from the result
     if result:
@@ -176,11 +180,6 @@ def determine_winner(payload:dict, img, scale_x:float, scale_y:float, perfect=Fa
 
 
 def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
-    """
-    Possibly will be deprecated soon. Only use to switch scenes.
-    """
-    # if payload['players'][0]['rounds'] > 1 and payload['players'][1]['rounds'] > 1: return
-
     pixel1 = img.getpixel((int(666 * scale_x), int(740 * scale_y))) #"SLASH" white text
     pixel2 = img.getpixel((int(1140 * scale_x), int(655 * scale_y))) #"SLASH" white text (somewhere else)
     pixelperfect1 = img.getpixel((int(640 * scale_x), int(765 * scale_y))) #red overlay around text
@@ -188,7 +187,7 @@ def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
             
     target_color = (255, 255, 255) #white text
     target_color2 = (255, 0, 0) #red line on the right of text
-    deviation = 0.2
+    deviation = 0.15
     
     perfect = None
 
