@@ -205,8 +205,6 @@ def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
     return
 
 def detect_result_screen(payload:dict, img, scale_x:float, scale_y:float):
-    if payload['players'][0]['rounds'] < 1 or payload['players'][1]['rounds'] < 1: return
-    if payload['players'][0]['rounds'] > 2 and payload['players'][1]['rounds'] > 2: return
     pixel = img.getpixel((int(1 * scale_x), int(105 * scale_y))) #the win/lose text for player 1
     pixel2 = img.getpixel((int(1 * scale_x), int(975 * scale_y))) #the win/lose text for player 1
     # Define the target color and deviation
