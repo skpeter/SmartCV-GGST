@@ -58,10 +58,8 @@ def detect_character_select_screen(payload:dict, img, scale_x:float, scale_y:flo
     return
 
 def detect_characters(payload:dict, img, scale_x:float, scale_y:float):
-    time.sleep(core.refresh_rate)
-
     # signal to the main loop that character and tag detection is in progress
-    if payload['players'][0]['character'] and payload['players'][1]['character']: return
+    if payload['players'][0]['character']: return
     # Initialize the reader
     region1 = (int(215 * scale_x), int(410 * scale_y), int(565 * scale_x), int(100 * scale_y))
     region2 = (int(215 * scale_x), int(600 * scale_y), int(565 * scale_x), int(100 * scale_y))
@@ -71,14 +69,13 @@ def detect_characters(payload:dict, img, scale_x:float, scale_y:float):
     if character2: character2 = ' '.join(character2)
 
     if character1 is not None and character2 is not None:
-        c1, _ = findBestMatch(character1, ggst.characters)
-        c2, _ = findBestMatch(character2, ggst.characters)
-    else: return detect_characters(payload, img, scale_x, scale_y)
+        c1, score1 = findBestMatch(character1, ggst.characters)
+        c2, score2 = findBestMatch(character2, ggst.characters)
+        if score1 < 0.5 or score2 < 0.5: return
+    else: return 
     payload['players'][0]['character'], payload['players'][1]['character'] = c1, c2
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 1 character:", c1)
     print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 2 character:", c2)
-
-    time.sleep(core.refresh_rate)
     return
 
 def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
@@ -96,7 +93,7 @@ def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
         if payload['state'] != previous_states[-1]:
             previous_states.append(payload['state'])
             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Match is now loading...")
-            detect_characters(payload, img, scale_x, scale_y)
+        detect_characters(payload, img, scale_x, scale_y)
     return
 
 def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
@@ -120,7 +117,7 @@ def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
 def detect_round_start(payload:dict, img, scale_x:float, scale_y:float):
     box = (int(960 * scale_x), int(475 * scale_y), int(10 * scale_x), int(180 * scale_y))
 
-    if core.get_color_match_in_region(img, box, (200, 15, 15), 0.15) >= 0.9:
+    if core.get_color_match_in_region(img, box, (200, 15, 15), 0.1) >= 0.9:
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Game starting")
         for player in payload['players']:
             player['rounds'] = 2
@@ -187,7 +184,7 @@ def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
             
     target_color = (255, 255, 255) #white text
     target_color2 = (255, 0, 0) #red line on the right of text
-    deviation = 0.15
+    deviation = 0.1
     
     perfect = None
 
