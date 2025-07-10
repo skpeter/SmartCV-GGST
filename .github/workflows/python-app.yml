@@ -6,6 +6,9 @@ on:
       - main
     paths-ignore:
       - 'README.md'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [core-updated]
 
 jobs:
   build:
@@ -56,12 +59,11 @@ jobs:
         $path = "dist\smartcv\config.ini"
         (Get-Content $path) | ForEach-Object {
           if ($_ -match '^\s*executable_title\s*=') {
-            "executable_title = Guilty Gear -Strive-"
+            "executable_title = Rivals2"
           } else {
             $_
           }
         } | Set-Content $path
-
     - name: Create zip file
       run: |
         cd dist\smartcv
