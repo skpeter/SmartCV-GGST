@@ -243,7 +243,7 @@ def detect_result_screen(payload:dict, img, scale_x:float, scale_y:float):
 states_to_functions = {
     None: [detect_character_select_screen, detect_versus_screen],
     "character_select": [detect_versus_screen],
-    "loading": [detect_player_tags, detect_round_start, detect_rounds],
+    "loading": [detect_round_start, detect_rounds, detect_player_tags],
     "in_game": [detect_character_select_screen, detect_rounds, detect_game_end, detect_result_screen],
     "game_end": [detect_result_screen, detect_character_select_screen, detect_round_start],
 }
