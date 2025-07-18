@@ -93,7 +93,6 @@ def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
         if payload['state'] != previous_states[-1]:
             previous_states.append(payload['state'])
             print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Match is now loading...")
-        detect_characters(payload, img, scale_x, scale_y)
     return
 
 def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
@@ -115,6 +114,7 @@ def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
     return
 
 def detect_round_start(payload:dict, img, scale_x:float, scale_y:float):
+    global ko_passes
     box = (int(960 * scale_x), int(475 * scale_y), int(10 * scale_x), int(180 * scale_y))
 
     if core.get_color_match_in_region(img, box, (200, 15, 15), 0.1) >= 0.9:
@@ -122,11 +122,15 @@ def detect_round_start(payload:dict, img, scale_x:float, scale_y:float):
         for player in payload['players']:
             player['rounds'] = 2
         payload['state'] = "in_game"
+        ko_passes = [0, 0]
         if payload['state'] != previous_states[-1]:
             previous_states.append(payload['state'])
                 
 
 def detect_rounds(payload:dict, img, scale_x:float, scale_y:float):
+    """
+    DEPRECATED
+    """
     if payload['players'][0]['rounds'] < 2 and payload['players'][1]['rounds'] < 2: return
         
     pixel1 = img.getpixel((int(800 * scale_x), int(90 * scale_y))) #p1 heart
@@ -139,7 +143,6 @@ def detect_rounds(payload:dict, img, scale_x:float, scale_y:float):
     target_color = (213, 33, 48)  #red heart (still has round)
     target_color2 = (155, 155, 155)  #gray heart (lost round)
     deviation = 0.15
-
 
     if core.is_within_deviation(pixel1, target_color, deviation):
         if payload['players'][0]['rounds'] == 1: print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Correcting previous round loss report")
@@ -155,53 +158,56 @@ def detect_rounds(payload:dict, img, scale_x:float, scale_y:float):
         payload['players'][1]['rounds'] = 1
     return
 
-def determine_winner(payload:dict, img, scale_x:float, scale_y:float, perfect=False):
-    # Define the area to read
-    img = img.rotate(90 if not perfect else 344, expand=True)
-    if perfect: x, y, w, h = (int(115 * scale_x), int(90 * scale_y), int(355 * scale_x), int(160 * scale_y))
-    else:
-        img = img.crop((int(115 * scale_y), int(75 * scale_x), int(705 * scale_y), int(320 * scale_x)))
-        img = img.rotate(-10, expand=True)
+ko_passes = [0, 0]
+def detect_ko(payload:dict, img, scale_x:float, scale_y:float):
+    global ko_passes
+    if len([p for p in ko_passes if p > 1]) > 0: return
+    # we need to detect if the hearts are there this means the HUD is being displayed and not being obstructed
+    risc_pixel1 = img.getpixel((int(863 * scale_x), int(188 * scale_y)))
+    risc_pixel2 = img.getpixel((int(1055 * scale_x), int(188 * scale_y)))
+    empty_risc_color = (114, 118, 104)
+    some_risc_color = (178, 10, 184)
+    if config.getboolean('settings', 'debug_mode', fallback=False):
+        print("Detected heart pixel - player 1:", risc_pixel1, "player 2:", risc_pixel2)
+    conditions = [
+        not core.is_within_deviation(risc_pixel1, empty_risc_color, 0.25),
+        not core.is_within_deviation(risc_pixel2, empty_risc_color, 0.25),
+        not core.is_within_deviation(risc_pixel1, some_risc_color, 0.25),
+        not core.is_within_deviation(risc_pixel2, some_risc_color, 0.25)
+    ]
+    if (sum(conditions) > 2):
+        if config.getboolean('settings', 'debug_mode', fallback=False):
+            print("KO detection skipped, HUD not being displayed or obstructed")
+        return
 
-    result = core.read_text(img, colored=False, contrast=4)
-    if result: result = ' '.join(result)
-
-    # strip all non-numeric characters from the result
-    if result:
-        result = re.sub(r'\D+', '', result)
-        print(result)
-        if len(result) == 0: return False
-        if (result[0] == 1 and payload['players'][0]['rounds'] == 1) or (result[0] == 2 and payload['players'][1]['rounds'] == 1):
-            return True
-    return False
-
-
-def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
-    pixel1 = img.getpixel((int(666 * scale_x), int(740 * scale_y))) #"SLASH" white text
-    pixel2 = img.getpixel((int(1140 * scale_x), int(655 * scale_y))) #"SLASH" white text (somewhere else)
-    pixelperfect1 = img.getpixel((int(640 * scale_x), int(765 * scale_y))) #red overlay around text
-    pixelperfect2 = img.getpixel((int(55 * scale_x), int(295 * scale_y))) #"PERFECT" white text
-            
-    target_color = (255, 255, 255) #white text
-    target_color2 = (255, 0, 0) #red line on the right of text
-    deviation = 0.1
-    
-    perfect = None
-
-    if core.is_within_deviation(pixel1, target_color, deviation) and core.is_within_deviation(pixel2, target_color, deviation):
-        perfect = False
-    if core.is_within_deviation(pixelperfect1, target_color2, deviation) and core.is_within_deviation(pixelperfect2, target_color, deviation):
-        perfect = True
-    if perfect is not None:
-        print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Perfect!" if perfect else "- Slash!")
-        if determine_winner(payload, img, scale_x, scale_y, perfect):
-            payload['state'] = "game_end"
-            if payload['state'] != previous_states[-1]:
-                previous_states.append(payload['state'])
-        time.sleep(core.refresh_rate)
+    pixel = img.getpixel((int(866 * scale_x), int(128 * scale_y)))
+    pixel2 = img.getpixel((int(1052 * scale_x), int(128 * scale_y)))
+    if config.getboolean('settings', 'debug_mode', fallback=False):
+        print("KO detection pixels:", sum(pixel), sum(pixel2))
+    dark_bar1 = True if sum(pixel) > 100 and sum(pixel) >= 200 else False
+    dark_bar2 = True if sum(pixel2) > 100 and sum(pixel2) >= 200 else False
+    if dark_bar1 ^ dark_bar2:
+        if dark_bar1: ko_passes[0] += 1
+        if dark_bar2: ko_passes[1] += 1
+        if ko_passes[0] > 1 or ko_passes[1] > 1:
+            core.print_with_time("SLASH", end=" ")
+            winner = 0 if ko_passes[0] > 1 else 1
+            payload['players'][not winner]['rounds'] -= 1
+            print(f" - {payload['players'][winner]['character']}")
+            if payload['players'][0]['rounds'] == 0 or payload['players'][1]['rounds'] == 0:
+                core.print_with_time(f"{payload['players'][winner]['character']} wins!")
+                payload['state'] = "game_end"
+                if payload['state'] != previous_states[-1]:
+                    previous_states.append(payload['state'])
+            else:
+                time.sleep(2)
+                ko_passes = [0, 0]
+        return
+    ko_passes = [max(p - 1, 0) for p in ko_passes]
     return
 
-def detect_result_screen(payload:dict, img, scale_x:float, scale_y:float):
+def detect_results(payload:dict, img, scale_x:float, scale_y:float):
+    if payload['players'][0]['rounds'] == 0 or payload['players'][1]['rounds'] == 0: return
     pixel = img.getpixel((int(1 * scale_x), int(105 * scale_y))) #the win/lose text for player 1
     pixel2 = img.getpixel((int(1 * scale_x), int(975 * scale_y))) #the win/lose text for player 1
     # Define the target color and deviation
@@ -210,9 +216,7 @@ def detect_result_screen(payload:dict, img, scale_x:float, scale_y:float):
     deviation = 0.2
     if config.getboolean('settings', 'debug_mode', fallback=False):
         print("Detected result screen pixels - player 1:", pixel, "player 2:", pixel2)
-
         if ((core.is_within_deviation(pixel, target_color, deviation) and core.is_within_deviation(pixel2, target_color2, deviation))):
-            if payload['players'][0]['rounds'] == 0 or payload['players'][1]['rounds'] == 0: return
             pixel = img.getpixel((int(450 * scale_x), int(730 * scale_y))) # win box for player 1
             pixel2 = img.getpixel((int(1735 * scale_x), int(730 * scale_y))) # lose box for player 2
             target_color = (190, 0, 0)  # red
@@ -243,7 +247,7 @@ def detect_result_screen(payload:dict, img, scale_x:float, scale_y:float):
 states_to_functions = {
     None: [detect_character_select_screen, detect_versus_screen],
     "character_select": [detect_versus_screen],
-    "loading": [detect_round_start, detect_rounds, detect_player_tags],
-    "in_game": [detect_character_select_screen, detect_rounds, detect_game_end, detect_result_screen],
-    "game_end": [detect_result_screen, detect_character_select_screen, detect_round_start],
+    "loading": [detect_round_start, detect_characters, detect_player_tags],
+    "in_game": [detect_character_select_screen, detect_ko, detect_results],
+    "game_end": [detect_results, detect_character_select_screen, detect_round_start],
 }
