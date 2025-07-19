@@ -162,7 +162,7 @@ ko_passes = [0, 0]
 def detect_ko(payload:dict, img, scale_x:float, scale_y:float):
     global ko_passes
     if len([p for p in ko_passes if p > 1]) > 0: return
-    # we need to detect if the hearts are there this means the HUD is being displayed and not being obstructed
+    # we need to detect if the risc bar is there this means the HUD is being displayed and not being obstructed
     risc_pixel1 = img.getpixel((int(863 * scale_x), int(188 * scale_y)))
     risc_pixel2 = img.getpixel((int(1055 * scale_x), int(188 * scale_y)))
     empty_risc_color = (114, 118, 104)
