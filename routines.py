@@ -9,6 +9,9 @@ client_name = "smartcv-ggst"
 config = configparser.ConfigParser()
 config.read('config.ini')
 previous_states = [None] # list of previous states to be used for state change detection
+char_ocr_attempts = 0
+tag_ocr_attempts = 0
+CHAR_OCR_MAX_TRIES = 5
 
 payload = {
     "state": None,
@@ -27,6 +30,7 @@ payload = {
 }
 
 def detect_character_select_screen(payload:dict, img, scale_x:float, scale_y:float):
+    global char_ocr_attempts, tag_ocr_attempts
     pixel = img.getpixel((int(115 * scale_x), int(55 * scale_y))) #white tournament mode icon
     pixel2 = img.getpixel((int(1805 * scale_x), int(55 * scale_y))) #back button area
     
@@ -55,12 +59,15 @@ def detect_character_select_screen(payload:dict, img, scale_x:float, scale_y:flo
                 player['rounds'] = 2
                 player['character'] = None
                 player['name'] = None
+            char_ocr_attempts = 0
+            tag_ocr_attempts = 0
     return
 
 def detect_characters(payload:dict, img, scale_x:float, scale_y:float):
-    # signal to the main loop that character and tag detection is in progress
+    global char_ocr_attempts
     if payload['players'][0]['character']: return
-    # Initialize the reader
+    if char_ocr_attempts >= CHAR_OCR_MAX_TRIES: return
+    char_ocr_attempts += 1
     region1 = (int(215 * scale_x), int(410 * scale_y), int(565 * scale_x), int(100 * scale_y))
     region2 = (int(215 * scale_x), int(600 * scale_y), int(565 * scale_x), int(100 * scale_y))
     character1 = core.read_text(img, region1)
@@ -96,8 +103,10 @@ def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
     return
 
 def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
-    time.sleep(core.refresh_rate)
-    if payload['players'][0]['name'] != None and payload['players'][1]['name'] != None: return
+    global tag_ocr_attempts
+    if payload['players'][0]['name'] and payload['players'][1]['name']: return
+    if tag_ocr_attempts >= CHAR_OCR_MAX_TRIES: return
+    tag_ocr_attempts += 1
 
     tag1 = core.read_text(img, (int(575 * scale_x), int(35 * scale_y), int(770 * scale_x), int(115 * scale_y)))
     tag2 = core.read_text(img, (int(575 * scale_x), int(880 * scale_y), int(770 * scale_x), int(115 * scale_y)))
@@ -108,9 +117,6 @@ def detect_player_tags(payload:dict, img, scale_x:float, scale_y:float):
         payload['players'][0]['name'], payload['players'][1]['name'] = tag1.strip(), tag2.strip()
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 1 tag:", payload['players'][0]['name'])
         print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "- Player 2 tag:", payload['players'][1]['name'])
-    else:
-        for player in payload['players']:
-            player['name'] = False
     return
 
 def detect_round_start(payload:dict, img, scale_x:float, scale_y:float):
