@@ -20,9 +20,7 @@ It's a project that uses pixel detection to recognize certain situations in the 
 - Download **source.zip** from the [latest release](https://github.com/skpeter/SmartCV-GGST/releases/latest/download/source.zip). Do not use GitHub's auto-generated "Source code" zip — it is missing the `core` files.
 - Install Python if you haven't done so already [here](https://www.python.org/downloads/). **Recommended version is 3.12**.
 - Open a command prompt terminal on the installed directory and type `pip install -r core/requirements.txt`
-- You will need to then install PyTorch, which is done through command prompt/terminal. Go to Pytorch's "Start Locally" section [here](https://pytorch.org/get-started/locally/), pick the **Stable** build, select the OS you use (**Windows, Mac or Linux**), **Pip** as packaging system, **Python** as language and then select the **Compute Platform** available on your GPU. You can check which version of CUDA your GPU supports [here](https://en.wikipedia.org/wiki/CUDA#GPUs_supported).
-![PyTorch installation page](img/install1.jpg)
-- - Choosing these options will generate a command that you should copy and paste on your terminal/command prompt. PyTorch weighs around 3GB, so take your time.
+- First run downloads PaddlePaddle into AppData (CPU, or GPU cu126 when an NVIDIA GPU is detected). Optional: install a matching wheel yourself from the [Paddle install docs](https://www.paddlepaddle.org.cn/install/quick) before launch.
 
 ## Step 2: Setup
 - Follow either one of the two steps below:
@@ -37,9 +35,9 @@ SmartCV reads game data directly from the OBS video source you put it on through
 **If using OBS, make sure it is open and do not disable the game capture source!**
 
 ## Troubleshooting
-- **When I run the app it says a bunch of code that ends with `ModuleNotFoundError: No module named 'torch'"` at the end! What do I do?**
+- **When I run the app it says a bunch of code that ends with `ModuleNotFoundError: No module named 'paddle'` (or paddleocr)! What do I do?**
 
-Try restarting your system. If that doesn't work, append `py -m` to the code that installs PyTorch. For example: `py -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`
+First launch needs internet to download PaddlePaddle into `%LOCALAPPDATA%\SmartCV\paddle`. OCR models download into `%LOCALAPPDATA%\SmartCV\paddle\paddlex`. Check the console for setup errors. Delete that paddle folder and rerun to force setup again (wheels and models). For source installs, also confirm `pip install -r core/requirements.txt` completed (`paddleocr` is required; `paddlepaddle` is bootstrapped on first run).
 
 ## Where do I use this?
 SmartCV opens a websocket server (on port 6565 by default) to send data to.
